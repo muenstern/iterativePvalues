@@ -10,6 +10,11 @@ Authors@R: c(
     )
   )
 Description: Generates iterative p-values-curve and computes parameters
+Imports:
+    dplyr,
+    ggplot2,
+    tidyr,
+    pracma
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
