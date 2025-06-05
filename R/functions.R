@@ -1,11 +1,3 @@
-# Some useful keyboard shortcuts for package authoring:
-#
-#   Install Package:           'Ctrl + Shift + B'
-#   Check Package:             'Ctrl + Shift + E'
-#   Test Package:              'Ctrl + Shift + T'
-
-
-
 #' Prepare data (against zero)
 
 #' Prepares dataframes for testing against zero
@@ -17,17 +9,17 @@
 
 prepare_data_zero <- function(df_input, var, id) {
   df_prepared <- data.frame()
-  df_input$dummy <- "dummy"
+  df_input$dummy <- var
   df_input$zero <- 0
-  df_input <- df_input %>% rename("binding" = var)
+  df_input <- df_input %>% rename("dv" = var)
 
-  df_input$dummy2 <- paste0(var, "_zero")
+  df_input$dummy_zero <- paste0(var, "_zero")
 
-  df1 <- df_input[, c("VP", "dummy", var)]
-  colnames(df1) <- c("VP", "dummy", "binding")
+  df1 <- df_input[, c("VP", "dummy", "dv")]
+  colnames(df1) <- c("VP", "dummy", "dv")
 
-  df2 <- df_input[, c("VP", "dummy2", "zero")]
-  colnames(df2) <- c("VP", "dummy", "binding")
+  df2 <- df_input[, c("VP", "dummy_zero", "zero")]
+  colnames(df2) <- c("VP", "dummy", "dv")
 
   df_prepared <<- rbind(df1, df2)
   df_prepared <- as.data.frame(df_prepared)
@@ -50,7 +42,7 @@ prepare_data_against <- function(df_input, factor, var, id) {
   df_prepared <- data.frame()
   df_input <- df_input %>% ungroup %>% select(id, factor, var)
   df_input <- df_input %>% rename("dummy" = factor)
-  df_input <- df_input %>% rename("binding" = var)
+  df_input <- df_input %>% rename("dv" = var)
   df_prepared <<- df_input
   df_prepared <- as.data.frame(df_prepared)
   list2env(df_prepared, envir = .GlobalEnv)
@@ -96,7 +88,7 @@ compute_p_curves <- function(n_iter = 100, df = df_prepared, fct_levels = 1) {
         p <- NA
       } else {
         t_test_result <- tryCatch(
-          t.test(binding ~ dummy, data = get_appended, paired = TRUE),
+          t.test(dv ~ dummy, data = get_appended, paired = TRUE),
           error = function(e) NULL
         )
         p <- ifelse(is.null(t_test_result), NA, t_test_result$p.value)
