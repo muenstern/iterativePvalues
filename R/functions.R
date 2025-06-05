@@ -220,19 +220,19 @@ p_plot <- function(summarized_data = summary_stats){
              label = paste0("TTS[SD] = ", tts_max_value)) +
 
     scale_y_continuous(
-      name = "Mittlerer p-Wert ± SD",
+      name = "p-values (M) ± SD",
       limits = c(-0.1, 1),
       breaks = seq(0, 1, 0.05),
-      sec.axis = sec_axis(~./3, name = "Standardabweichung p-Wert")
+      sec.axis = sec_axis(~./3, name = "p-values (SD)")
     ) +
 
     scale_color_manual(name = NULL,
-                       values = c("Mittlerer p-Wert" = "#0072B2", "SD der p-Werte" = "darkorange")) +
+                       values = c("p-values (M)" = "#0072B2", "p-values (SD)" = "darkorange")) +
 
     labs(
-      title = paste0("Mittlere p-Werte über ", n_iter, " Iterationen"),
-      subtitle = paste0(n_Total, " VP"),
-      x = "Anzahl Teilnehmer (n)"
+      title = paste0("Mean p-values over ", n_iter, " Iterationen"),
+      subtitle = paste0(n_Total, " steps"),
+      x = "Steps (n)"
     ) +
 
     theme(
