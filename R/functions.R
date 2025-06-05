@@ -230,7 +230,7 @@ p_plot <- function(summarized_data = summary_stats){
                        values = c("p-values (M)" = "#0072B2", "p-values (SD)" = "darkorange")) +
 
     labs(
-      title = paste0("Mean p-values over ", n_iter, " Iterationen"),
+      title = paste0("Mean p-values over ", n_iter, " iterations"),
       subtitle = paste0(n_Total, " steps"),
       x = "Steps (n)"
     ) +
