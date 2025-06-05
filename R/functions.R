@@ -16,7 +16,7 @@
 #' @export
 
 prepare_data_zero <- function(df_input, var, id) {
-
+  df_prepared <- data.frame()
   df_input$dummy <- "dummy"
   df_input$zero <- 0
   df_input <- df_input %>% rename("binding" = var)
@@ -29,7 +29,11 @@ prepare_data_zero <- function(df_input, var, id) {
   df2 <- df_input[, c("VP", "dummy2", "zero")]
   colnames(df2) <- c("VP", "dummy", "binding")
 
-  rbind(df1, df2)
+  df_prepared <<- rbind(df1, df2)
+  df_prepared <- as.data.frame(df_prepared)
+  list2env(df_prepared, envir = .GlobalEnv)
+  df_prepared <- as.data.frame(df_prepared)
+  return(df_prepared)
 }
 
 #' Prepare data (against each other)
@@ -43,10 +47,15 @@ prepare_data_zero <- function(df_input, var, id) {
 #' @export
 
 prepare_data_against <- function(df_input, factor, var, id) {
+  df_prepared <- data.frame()
   df_input <- df_input %>% ungroup %>% select(id, factor, var)
   df_input <- df_input %>% rename("dummy" = factor)
   df_input <- df_input %>% rename("binding" = var)
-
+  df_prepared <<- df_input
+  df_prepared <- as.data.frame(df_prepared)
+  list2env(df_prepared, envir = .GlobalEnv)
+  df_prepared <- as.data.frame(df_prepared)
+  return(df_prepared)
 }
 
 
@@ -54,12 +63,13 @@ prepare_data_against <- function(df_input, factor, var, id) {
 
 #' Computes iterative p-values
 #' @param df input dataframe from prepare data function
-#' @param n_iter number of iterations
-#' @param fct_levels optional
+#' @param n_iter number of iterations (default value = 100)
+#' @param fct_levels default value = 1
 #' @return dataframe "all_iterations"
 #' @export
 
-compute_p_curves <- function(df, n_iter, fct_levels) {
+compute_p_curves <- function(n_iter = 100, df = df_prepared, fct_levels = 1) {
+  n_iterations <<- n_iter
   all_iterations <- data.frame()
   pb <- txtProgressBar(min = 0, max = n_iter, style = 3)
 
@@ -105,7 +115,11 @@ compute_p_curves <- function(df, n_iter, fct_levels) {
     all_iterations <- bind_rows(all_iterations, appended_pvalues)
   }
 
+  all_iterations <<- all_iterations
+
   close(pb)
+
+  list2env(all_iterations, envir = .GlobalEnv)
   return(all_iterations)
 }
 
@@ -116,9 +130,9 @@ compute_p_curves <- function(df, n_iter, fct_levels) {
 #' @return dataframe "summary_stats"
 #' @export
 
-summarize_p_values <- function(df_iterations) {
+summarize_p_values <- function(df_iterations = all_iterations) {
   summary_stats <- data.frame()
-  summary_stats <- df_iterations %>%
+  summary_stats <<- all_iterations %>%
     group_by(N) %>%
     summarise(
       mean_p = mean(p_value, na.rm = TRUE),
@@ -133,41 +147,45 @@ summarize_p_values <- function(df_iterations) {
     drop_na()
 
   return(summary_stats)
+  list2env(summary_stats, envir = .GlobalEnv)
 }
 
 
 #' Parameters and Plot
 
 #' Gives iterative-p-value plot and metrics
-#' @param n_iter number of iterations
+#' @param summarized_data data from summarize_p_values-function
+#' @param n_iterations number of iterations
 #' @return parameters and plot
 #' @export
 
-p_plot <- function(n_iter){
+p_plot <- function(summarized_data = summary_stats){
+
+  n_iter <- n_iterations
 
   # Regressionsanalysen (ungeglättete Werte) #
-  lm_model <- lm(mean_p ~ N, data = summary_stats)
+  lm_model <- lm(mean_p ~ N, data = summarized_data)
   summary_lm <- summary(lm_model)
 
   intercept <- coef(lm_model)[1]
   slope <<- coef(lm_model)[2]
   r_squared <<- summary_lm$r.squared
   p_val_slope <<- summary_lm$coefficients["N", "Pr(>|t|)"]
-  beta_std <<- coef(lm(scale(mean_p) ~ scale(N), data = summary_stats))[2]
+  beta_std <<- coef(lm(scale(mean_p) ~ scale(N), data = summarized_data))[2]
 
   # Metriken berechnen #
-  auc_value <<- trapz(summary_stats$N, summary_stats$mean_p)
-  tts_value <<- summary_stats$N[which(summary_stats$mean_p < 0.05)[1]]
-  tts_max_value <<- summary_stats$N[which(summary_stats$max_p_value < 0.05)[1]]
+  auc_value <<- pracma::trapz(summarized_data$N, summarized_data$mean_p)
+  tts_value <<- summarized_data$N[which(summarized_data$mean_p < 0.05)[1]]
+  tts_max_value <<- summarized_data$N[which(summarized_data$max_p_value < 0.05)[1]]
 
-  n_Total <<- length(unique(df_prepped$VP))
+  n_Total <<- length(unique(df_prepared$VP))
   sd_sig_level <- 1 - tts_max_value/n_Total
   sd_sig_level <<- round(sd_sig_level, 3) * 100
 
-  auc_var <<- trapz(summary_stats$N, summary_stats$sd_p)
-  auc_grad_var <<- trapz(summary_stats$N, summary_stats$abs_diff_sd_p)
+  auc_var <<- pracma::trapz(summarized_data$N, summarized_data$sd_p)
+  auc_grad_var <<- pracma::trapz(summarized_data$N, summarized_data$abs_diff_sd_p)
 
-  max_N <- max(summary_stats$N)
+  max_N <- max(summarized_data$N)
 
   # Normierte AUCs
   auc_norm <<- auc_value / max_N
@@ -175,22 +193,22 @@ p_plot <- function(n_iter){
   auc_grad_var_norm <<- auc_grad_var / max_N
 
   # Robuste Normierung über 95%-Quantile
-  max_mean_p <- quantile(summary_stats$mean_p, 0.95, na.rm = TRUE)
-  max_sd_p <- quantile(summary_stats$sd_p, 0.95, na.rm = TRUE)
-  max_abs_diff_sd_p <- quantile(summary_stats$abs_diff_sd_p, 0.95, na.rm = TRUE)
+  max_mean_p <- quantile(summarized_data$mean_p, 0.95, na.rm = TRUE)
+  max_sd_p <- quantile(summarized_data$sd_p, 0.95, na.rm = TRUE)
+  max_abs_diff_sd_p <- quantile(summarized_data$abs_diff_sd_p, 0.95, na.rm = TRUE)
 
-  auc_double_norm <- trapz(summary_stats$N, summary_stats$mean_p / max_mean_p) / max_N
-  auc_var_double_norm <- trapz(summary_stats$N, summary_stats$sd_p / max_sd_p) / max_N
-  auc_grad_var_double_norm <- trapz(summary_stats$N, summary_stats$abs_diff_sd_p / max_abs_diff_sd_p) / max_N
+  auc_double_norm <- pracma::trapz(summarized_data$N, summarized_data$mean_p / max_mean_p) / max_N
+  auc_var_double_norm <- pracma::trapz(summarized_data$N, summarized_data$sd_p / max_sd_p) / max_N
+  auc_grad_var_double_norm <- pracma::trapz(summarized_data$N, summarized_data$abs_diff_sd_p / max_abs_diff_sd_p) / max_N
 
 
   # Teilnehmerzahl extrahieren für Plot-Untertitel
-  n_Total <- length(unique(df_prepped$VP))
+  n_Total <- length(unique(df_prepared$VP))
 
   metrics <<- data.frame(TTS_M = numeric(), TTS_SD = numeric(), SD_05 = numeric(), AUC_p = numeric(), AUC_var = numeric(), AUC_gradvar = numeric())
   metrics <<- data.frame(TTS_M = tts_value, TTS_SD = tts_max_value, SD_05 = sd_sig_level, AUC_p = auc_value, AUC_var = auc_var, AUC_gradvar = auc_grad_var)
 
-  p_plot <- ggplot(summary_stats, aes(x = N)) +
+  p_plot <- ggplot(summarized_data, aes(x = N)) +
     theme_minimal(base_family = "Aptos") +
 
     geom_line(aes(y = mean_p, color = "Mittlerer p-Wert"), size = 1.2) +
@@ -204,9 +222,9 @@ p_plot <- function(n_iter){
     geom_line(aes(y = sd_p * 3, color = "SD der p-Werte"), linetype = "longdash", size = 0.8) +
 
     # TTS-Annotation
-    annotate("text", x = tts_value, y = max(summary_stats$max_p_value), hjust = 1, vjust = 1, size = 5, family = "Cambria",
+    annotate("text", x = tts_value, y = max(summarized_data$max_p_value), hjust = 1, vjust = 1, size = 5, family = "Cambria",
              label = paste0("TTS[M] = ", tts_value)) +
-    annotate("text", x = tts_max_value, y = max(summary_stats$max_p_value)*0.8, hjust = 1, vjust = 1, size = 5, family = "Cambria",
+    annotate("text", x = tts_max_value, y = max(summarized_data$max_p_value)*0.8, hjust = 1, vjust = 1, size = 5, family = "Cambria",
              label = paste0("TTS[SD] = ", tts_max_value)) +
 
     scale_y_continuous(
@@ -238,7 +256,7 @@ p_plot <- function(n_iter){
   cat(sprintf("Iterationen = %s\n", n_iter))
   cat(sprintf("VP = %s\n", n_Total))
 
-  cat("\n--- Regressionsformel ---\n")
+  cat("\n--- Regression Metrics ---\n")
   cat(sprintf("p = %.3f %s %.4f * N\n",
               intercept,
               ifelse(slope < 0, "-", "+"),
@@ -256,12 +274,12 @@ p_plot <- function(n_iter){
               n_Total,
               sd_sig_level * 100))
 
-  cat("--- AUC (absolut) ---\n")
+  cat("--- AUC (absolute) ---\n")
   cat(sprintf("AUC[p]       = %.2f\n", auc_value))
   cat(sprintf("AUC[Var]     = %.4f\n", auc_var))
   cat(sprintf("AUC[GradVar] = %.4f\n\n", auc_grad_var))
 
-  cat("--- AUC (standardisiert an N) ---\n")
+  cat("--- AUC (standardized (N) ---\n")
   cat(sprintf("AUC[p]       = %.3f\n", auc_norm))
   cat(sprintf("AUC[Var]     = %.3f\n", auc_var_norm))
   cat(sprintf("AUC[GradVar] = %.3f\n", auc_grad_var_norm))
