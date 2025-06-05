@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{p_plot}
 \alias{p_plot}
-\title{Metrics and Plot
+\title{Parameters and Plot
 Gives iterative-p-value plot and metrics}
 \usage{
 p_plot(n_iter)
@@ -11,9 +11,9 @@ p_plot(n_iter)
 \item{n_iter}{number of iterations}
 }
 \value{
-metrics and ggplot
+parameters and plot
 }
 \description{
-Metrics and Plot
+Parameters and Plot
 Gives iterative-p-value plot and metrics
 }

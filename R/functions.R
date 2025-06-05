@@ -136,11 +136,11 @@ summarize_p_values <- function(df_iterations) {
 }
 
 
-#' Metrics and Plot
+#' Parameters and Plot
 
 #' Gives iterative-p-value plot and metrics
 #' @param n_iter number of iterations
-#' @return metrics and ggplot
+#' @return parameters and plot
 #' @export
 
 p_plot <- function(n_iter){
@@ -234,7 +234,7 @@ p_plot <- function(n_iter){
 
   print(p_plot)
 
-  cat("\n--- p-Value Plot Metrics ---\n")
+  cat("\n--- p-Value Plot Parameters ---\n")
   cat(sprintf("Iterationen = %s\n", n_iter))
   cat(sprintf("VP = %s\n", n_Total))
 
