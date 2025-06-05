@@ -203,7 +203,7 @@ p_plot <- function(summarized_data = summary_stats){
   p_plot <- ggplot(summarized_data, aes(x = N)) +
     theme_minimal(base_family = "Aptos") +
 
-    geom_line(aes(y = mean_p, color = "Mittlerer p-Wert"), size = 1.2) +
+    geom_line(aes(y = mean_p, color = "p-values (M)"), size = 1.2) +
     geom_ribbon(aes(ymin = min_p_value, ymax = max_p_value), fill = "#0072B2", alpha = 0.2) +
     geom_abline(intercept = intercept, slope = slope, linetype = "dotted", color = "black") +
 
@@ -211,7 +211,7 @@ p_plot <- function(summarized_data = summary_stats){
     geom_vline(xintercept = tts_value, linetype = "dashed", color = "darkgreen") +
     geom_vline(xintercept = tts_max_value, linetype = "dashed", color = "darkgreen") +
 
-    geom_line(aes(y = sd_p * 3, color = "SD der p-Werte"), linetype = "longdash", size = 0.8) +
+    geom_line(aes(y = sd_p * 3, color = "p-values (SD)"), linetype = "longdash", size = 0.8) +
 
     # TTS-Annotation
     annotate("text", x = tts_value, y = max(summarized_data$max_p_value), hjust = 1, vjust = 1, size = 5, family = "Cambria",
